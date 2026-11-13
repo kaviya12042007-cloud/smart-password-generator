@@ -1,0 +1,127 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Password Generator</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
+  body{background:#0f0f1a;color:#fff;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px}
+  .card{background:#1a1a2e;width:100%;max-width:420px;padding:28px;border-radius:20px;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+  h2{text-align:center;margin-bottom:6px}
+  p.sub{text-align:center;color:#aaa;font-size:13px;margin-bottom:20px}
+  .output{background:#0f0f1a;border:2px solid #2a2a4a;border-radius:12px;padding:14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+  #password{font-size:17px;word-break:break-all;letter-spacing:1px}
+  #copyBtn{background:#6c5ce7;border:none;color:#fff;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600}
+  #copyBtn:hover{background:#5a4bd1}
+  .strength{margin-top:14px}
+  .bar{height:8px;background:#2a2a4a;border-radius:10px;overflow:hidden;margin-top:6px}
+  #strengthFill{height:100%;width:0%;background:red;transition:.3s}
+  .row{display:flex;justify-content:space-between;margin:18px 0 8px;font-size:15px}
+  input[type=range]{width:100%;accent-color:#6c5ce7}
+  .check{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #2a2a4a;font-size:15px}
+  .check input{width:20px;height:20px;accent-color:#6c5ce7}
+  #generate{width:100%;margin-top:20px;padding:14px;border:none;border-radius:12px;background:#6c5ce7;color:#fff;font-size:16px;font-weight:700;cursor:pointer}
+  #generate:hover{background:#5a4bd1}
+  #toast{position:fixed;bottom:25px;left:50%;transform:translate(-50%,100px);background:#00b894;color:#fff;padding:12px 22px;border-radius:30px;font-weight:600;transition:.4s;opacity:0}
+  #toast.show{transform:translate(-50%,0);opacity:1}
+</style>
+</head>
+<body>
+<div class="card">
+  <h2>🔐 Smart Password Generator</h2>
+  <p class="sub">Cryptographically secure random passwords</p>
+
+  <div class="output">
+    <span id="password">Click Generate</span>
+    <button id="copyBtn" onclick="copyPassword()">Copy</button>
+  </div>
+
+  <div class="strength">
+    <span id="strengthText">Strength: -</span>
+    <div class="bar"><div id="strengthFill"></div></div>
+  </div>
+
+  <div class="row"><span>Password Length</span><b id="lenValue">12</b></div>
+  <input type="range" id="length" min="4" max="32" value="12" oninput="updateLength()">
+
+  <div class="check"><span>Include Uppercase (A-Z)</span><input type="checkbox" id="upper" checked></div>
+  <div class="check"><span>Include Lowercase (a-z)</span><input type="checkbox" id="lower" checked></div>
+  <div class="check"><span>Include Numbers (0-9)</span><input type="checkbox" id="numbers" checked></div>
+  <div class="check"><span>Include Symbols (!@#$)</span><input type="checkbox" id="symbols" checked></div>
+
+  <button id="generate" onclick="generatePassword()">Generate Password</button>
+</div>
+
+<div id="toast">✅ Copied to clipboard!</div>
+
+<script>
+  function updateLength(){
+    document.getElementById('lenValue').innerText = document.getElementById('length').value;
+  }
+
+  function generatePassword(){
+    const length = document.getElementById('length').value;
+    const useUpper = document.getElementById('upper').checked;
+    const useLower = document.getElementById('lower').checked;
+    const useNumbers = document.getElementById('numbers').checked;
+    const useSymbols = document.getElementById('symbols').checked;
+
+    let chars = "";
+    if(useUpper) chars += "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    if(useLower) chars += "abcdefghijklmnopqrstuvwxyz";
+    if(useNumbers) chars += "0123456789";
+    if(useSymbols) chars += "!@#$%^&*()_+-=[]{}|;:,.<>?";
+
+    if(chars === ""){
+      alert("Please select at least one character type!");
+      return;
+    }
+
+    // Cryptographically secure random
+    const array = new Uint32Array(length);
+    window.crypto.getRandomValues(array);
+
+    let password = "";
+    for(let i=0; i<length; i++){
+      password += chars[array[i] % chars.length];
+    }
+
+    document.getElementById('password').innerText = password;
+    updateStrength(password);
+  }
+
+  function updateStrength(pwd){
+    let score = 0;
+    if(pwd.length >= 8) score++;
+    if(pwd.length >= 12) score++;
+    if(/[A-Z]/.test(pwd)) score++;
+    if(/[0-9]/.test(pwd)) score++;
+    if(/[^A-Za-z0-9]/.test(pwd)) score++;
+
+    const fill = document.getElementById('strengthFill');
+    const text = document.getElementById('strengthText');
+
+    if(score <= 2){ fill.style.width="33%"; fill.style.background="red"; text.innerText="Strength: Weak"; }
+    else if(score <= 3){ fill.style.width="66%"; fill.style.background="orange"; text.innerText="Strength: Medium"; }
+    else { fill.style.width="100%"; fill.style.background="#00b894"; text.innerText="Strength: Strong"; }
+  }
+
+  async function copyPassword(){
+    const pwd = document.getElementById('password').innerText;
+    if(pwd === "Click Generate"){ alert("First generate a password!"); return; }
+    try{
+      await navigator.clipboard.writeText(pwd);
+      const toast = document.getElementById('toast');
+      toast.classList.add('show');
+      setTimeout(()=> toast.classList.remove('show'), 2000);
+    } catch(err){
+      alert("Copy failed, please copy manually");
+    }
+  }
+
+  // Auto generate on load
+  generatePassword();
+</script>
+</body>
